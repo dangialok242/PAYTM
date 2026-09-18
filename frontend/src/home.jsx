@@ -9,24 +9,29 @@ export default function Home() {
     const [amount, setAmount] = useState('');
     const navigate = useNavigate();
 
-    // User profile aur transaction history fetch karne ka function
+    // Updated fetchData function with token check & array validation
     const fetchData = async () => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            navigate('/login');
+            return;
+        }
         try {
             const userRes = await api.get('/user/me');
             setUser(userRes.data);
 
             const txnRes = await api.get('/txn/history');
-            setTransactions(txnRes.data);
+            setTransactions(Array.isArray(txnRes.data) ? txnRes.data : []);
         } catch (error) {
-            console.error("Data load karne me error aayi", error);
-            alert("Session expired. Please login again.");
+            console.error("Data load error:", error);
+            localStorage.removeItem('token');
             navigate('/login');
         }
     };
 
     useEffect(() => {
         fetchData();
-    }, [navigate]);
+    }, []);
 
     // Paise bhejne ka function
     const handleTransfer = async (e) => {
@@ -50,7 +55,7 @@ export default function Home() {
         navigate('/login');
     };
 
-    if (!user) return <div className="text-center mt-20 text-xl">Loading...</div>;
+    if (!user) return <div className="text-center mt-20 text-xl font-bold text-gray-700">Loading...</div>;
 
     return (
         <div className="min-h-screen bg-gray-100 p-6 pb-12">
@@ -112,18 +117,21 @@ export default function Home() {
                         <p className="text-gray-500 text-sm text-center">Koi transaction nahi hai.</p>
                     ) : (
                         transactions.map((txn) => {
-                            const senderId = txn.sender?._id || txn.sender;
-                            const currentUserId = user?._id || user?.id;
-                            const isSender = String(senderId) === String(currentUserId);
+                            const senderId = typeof txn.sender === 'object' ? txn.sender?._id?.toString() : String(txn.sender);
+                            const currentUserId = String(user?._id || user?.id);
+                            const isSender = senderId === currentUserId;
 
                             return (
-                                <div key={txn._id} className="flex justify-between items-center p-3 border-b text-sm">
+                                <div key={txn._id || Math.random()} className="flex justify-between items-center p-3 border-b text-sm">
                                     <div>
                                         <p className="font-semibold text-gray-800">
-                                            {isSender ? `Paid to: ${txn.receiver?.name || 'User'}` : `Received from: ${txn.sender?.name || 'User'}`}
+                                            {isSender 
+                                                ? `Paid to: ${txn.receiver?.name || txn.receiver?.phone || 'User'}` 
+                                                : `Received from: ${txn.sender?.name || txn.sender?.phone || 'User'}`
+                                            }
                                         </p>
                                         <p className="text-xs text-gray-400">
-                                            {new Date(txn.createdAt).toLocaleString()}
+                                            {txn.createdAt ? new Date(txn.createdAt).toLocaleString() : ''}
                                         </p>
                                     </div>
                                     <span className={`font-bold ${isSender ? 'text-red-500' : 'text-green-600'}`}>
