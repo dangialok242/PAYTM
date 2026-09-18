@@ -1,3 +1,5 @@
+const cors = require('cors');
+app.use(cors()); // Ye sabhi domains se requests allow kar dega
 require('dotenv').config(); 
 const express = require('express');
 const cors = require('cors');
