@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'https://paytm-0cwf.onrender.com'
+    baseURL: 'https://paytm-0cwf.onrender.com/api'
 });
 
 export default api;
